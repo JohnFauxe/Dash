@@ -1,12 +1,15 @@
 import { useId, useRef, useState } from "react"
 import { SearchIcon } from "lucide-react"
 import { Input } from "@/components/ui/input"
-import { CURRENT_PAGE, pages } from "@/data/secpedia"
+import { findArticle, pages } from "@/data/secpedia"
+import { navigate } from "@/hooks/use-pathname"
+import { titleToPath } from "@/lib/routes"
 import { resolve, suggest } from "@/lib/search"
-import { notWrittenMessage, useNotify } from "./demo-context"
+import { notWrittenMessage, useArticle, useNotify } from "./secpedia-context"
 
 export function SiteSearch() {
   const notify = useNotify()
+  const current = useArticle().title
   const inputRef = useRef<HTMLInputElement>(null)
   const listId = useId()
   const [query, setQuery] = useState("")
@@ -14,12 +17,8 @@ export function SiteSearch() {
   const hits = open ? suggest(query, pages) : []
 
   function pick(title: string) {
-    if (title === CURRENT_PAGE) {
-      const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches
-      window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" })
-    } else {
-      notify(notWrittenMessage(title))
-    }
+    if (findArticle(title)) navigate(titleToPath(title))
+    else notify(notWrittenMessage(title))
     setQuery("")
     setOpen(false)
     inputRef.current?.blur()
@@ -83,7 +82,11 @@ export function SiteSearch() {
           >
             <span>{title}</span>
             <small className="text-muted-foreground text-xs whitespace-nowrap">
-              {title === CURRENT_PAGE ? "this page" : "placeholder"}
+              {title === current
+                ? "this page"
+                : findArticle(title)
+                  ? "article"
+                  : "placeholder"}
             </small>
           </button>
         ))}

@@ -1,11 +1,13 @@
 import { Fragment } from "react"
 import { cn } from "@/lib/utils"
-import { DemoLink } from "./demo-link"
+import { useArticle } from "./secpedia-context"
+import { WikiLink } from "./wiki-link"
 
 const tab = "inline-block px-3 pt-2 pb-1.5 whitespace-nowrap"
 const currentTab = "border-b-3 border-link font-semibold text-foreground"
 
 export function PageTabs() {
+  const { title, lastEdited, revisions } = useArticle()
   return (
     <>
       <nav
@@ -16,40 +18,37 @@ export function PageTabs() {
           <a href="#top" aria-current="page" className={cn(tab, currentTab)}>
             Article
           </a>
-          <DemoLink page="Talk page" className={tab}>
+          <WikiLink page={`Talk: ${title}`} className={tab}>
             Talk
-          </DemoLink>
+          </WikiLink>
         </div>
         <div aria-label="Views" className="flex">
           <a href="#top" aria-current="page" className={cn(tab, currentTab)}>
             Read
           </a>
-          <DemoLink page="Visual editor" className={tab}>
+          <WikiLink page={`Editing ${title}`} className={tab}>
             Edit
-          </DemoLink>
-          <DemoLink page="View history" className={tab}>
+          </WikiLink>
+          <WikiLink page={`History of ${title}`} className={tab}>
             View history
-          </DemoLink>
+          </WikiLink>
         </div>
       </nav>
       <p className="text-muted-foreground mt-2 mb-0.5 text-right text-[0.77rem]">
-        Last edited on 26 October 2026, at 09:14 ·{" "}
-        <DemoLink page="Page history" className="text-link hover:underline">
-          34 revisions
-        </DemoLink>
+        Last edited on {lastEdited} ·{" "}
+        <WikiLink
+          page={`History of ${title}`}
+          className="text-link hover:underline"
+        >
+          {revisions} revisions
+        </WikiLink>
       </p>
     </>
   )
 }
 
-const categories = [
-  "Cyber security",
-  "Information security",
-  "Computer security",
-  "Security engineering",
-]
-
 export function CategoryBar() {
+  const { categories } = useArticle()
   return (
     <div
       aria-label="Categories"
@@ -63,12 +62,12 @@ export function CategoryBar() {
               |
             </span>
           )}
-          <DemoLink
+          <WikiLink
             page={`Category: ${name}`}
             className="text-link hover:underline"
           >
             {name}
-          </DemoLink>
+          </WikiLink>
         </Fragment>
       ))}
     </div>
@@ -82,20 +81,19 @@ export function Colophon() {
         <p>
           Secpedia is a layout study of a reference-style encyclopedia, built
           for learning. It is not affiliated with Wikipedia, and the entries are
-          original study texts.
+          original study texts. They are not legal advice: check obligations
+          against the current legislation and regulator guidance.
         </p>
         <p className="text-link flex flex-wrap gap-x-2">
-          <a href="#top" className="hover:underline">
-            About Secpedia
-          </a>
+          <WikiLink page="About Secpedia" className="hover:underline" />
           <span aria-hidden className="text-muted-foreground">
             ·
           </span>
-          <DemoLink page="Disclaimers" className="hover:underline" />
+          <WikiLink page="Disclaimers" className="hover:underline" />
           <span aria-hidden className="text-muted-foreground">
             ·
           </span>
-          <DemoLink page="Privacy policy" className="hover:underline" />
+          <WikiLink page="Privacy policy" className="hover:underline" />
         </p>
       </div>
     </footer>

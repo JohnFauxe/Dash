@@ -1,6 +1,7 @@
 import { MenuIcon } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { DemoLink } from "./demo-link"
+import { FRONT_PAGE } from "@/data/secpedia"
+import { WikiLink } from "./wiki-link"
 import { Shield } from "./shield"
 import { SiteSearch } from "./site-search"
 
@@ -17,8 +18,8 @@ export function SiteHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
         >
           <MenuIcon />
         </Button>
-        <a
-          href="#top"
+        <WikiLink
+          page={FRONT_PAGE}
           aria-label="Secpedia front page"
           className="flex shrink-0 items-center gap-2"
         >
@@ -31,14 +32,14 @@ export function SiteHeader({ onOpenMenu }: { onOpenMenu: () => void }) {
               the open study encyclopedia
             </span>
           </span>
-        </a>
+        </WikiLink>
         <SiteSearch />
         <nav
           aria-label="Account"
           className="text-link hidden gap-3 text-[0.82rem] whitespace-nowrap md:flex"
         >
-          <DemoLink page="Create account" className="hover:underline" />
-          <DemoLink page="Log in" className="hover:underline" />
+          <WikiLink page="Create account" className="hover:underline" />
+          <WikiLink page="Log in" className="hover:underline" />
         </nav>
       </div>
     </header>

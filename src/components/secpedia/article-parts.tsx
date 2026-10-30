@@ -1,14 +1,72 @@
 import { useState, type ReactNode } from "react"
 import { ChevronDownIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { DemoLink } from "./demo-link"
+import { useArticle } from "./secpedia-context"
+import { WikiLink } from "./wiki-link"
 
-/** Superscript citation marker, e.g. [1], that links to its reference. */
-export function Cite({ id, to, n }: { id: string; to: string; n: number }) {
+/**
+ * Superscript citation marker, e.g. [1], linking to reference `n`. Mark the
+ * first use of each reference `first` so its "^" backlink has a target.
+ */
+export function Cite({ n, first }: { n: number; first?: boolean }) {
   return (
-    <sup id={id}>
-      <a href={`#${to}`}>[{n}]</a>
+    <sup id={first ? `cite-${n}` : undefined}>
+      <a href={`#ref-${n}`}>[{n}]</a>
     </sup>
+  )
+}
+
+/** Numbered reference list; item i pairs with <Cite n={i + 1} first />. */
+export function References({ items }: { items: ReactNode[] }) {
+  return (
+    <ol>
+      {items.map((text, i) => (
+        <li key={i} id={`ref-${i + 1}`}>
+          <a
+            href={`#cite-${i + 1}`}
+            aria-label={`Jump back to reference ${i + 1}`}
+            className="mr-1 font-bold"
+          >
+            ^
+          </a>{" "}
+          {text}
+        </li>
+      ))}
+    </ol>
+  )
+}
+
+/** A boxed aside inside article text, e.g. a study tip or a caveat. */
+export function Callout({
+  title,
+  children,
+}: {
+  title: string
+  children: ReactNode
+}) {
+  return (
+    <aside className="border-link bg-muted my-4 rounded-sm border-l-4 px-4 py-2.5 text-[0.9rem]">
+      <p className="mt-0 mb-1 font-bold">{title}</p>
+      {children}
+    </aside>
+  )
+}
+
+/** The article title and "From Secpedia" strapline. */
+export function ArticleHeading() {
+  const { title } = useArticle()
+  return (
+    <>
+      <h1
+        id="firstHeading"
+        className="mt-0.5 mb-0.5 border-b pb-1 font-serif text-[1.8rem] leading-tight font-bold text-balance"
+      >
+        {title}
+      </h1>
+      <p className="text-muted-foreground mb-4 text-[0.84rem] italic">
+        From Secpedia, the open study encyclopedia
+      </p>
+    </>
   )
 }
 
@@ -24,6 +82,7 @@ export function Section({
   children: ReactNode
   className?: string
 }) {
+  const { title: articleTitle } = useArticle()
   const [open, setOpen] = useState(true)
   const headingId = `h-${anchor}`
   const bodyId = `b-${anchor}`
@@ -47,12 +106,12 @@ export function Section({
           />
           {title}
         </button>
-        <DemoLink
-          page="Editing Cyber security"
-          className="ml-auto font-sans text-xs font-normal"
+        <WikiLink
+          page={`Editing ${articleTitle}`}
+          className="ml-auto font-sans text-xs font-normal whitespace-nowrap"
         >
           [ edit ]
-        </DemoLink>
+        </WikiLink>
       </h2>
       <div id={bodyId} hidden={!open} className={className}>
         {children}

@@ -1,14 +1,16 @@
-import { DemoLink } from "./demo-link"
-import { Shield } from "./shield"
+import { Shield } from "../shield"
+import { WikiLink } from "../wiki-link"
 import {
+  ArticleHeading,
   Cite,
+  References,
   Infobox,
   Section,
   SubHead,
   Toc,
   WikiTable,
   type TocEntry,
-} from "./article-parts"
+} from "../article-parts"
 
 const contents: TocEntry[] = [
   {
@@ -31,6 +33,7 @@ const contents: TocEntry[] = [
 ]
 
 const seeAlso = [
+  "Australian cyber security standards",
   "Cryptography",
   "Network security",
   "Social engineering",
@@ -41,89 +44,38 @@ const seeAlso = [
 ]
 
 const references = [
-  {
-    id: "ref-1",
-    back: "cite-1",
-    label: "^",
-    text: (
-      <>
-        National Institute of Standards and Technology (2024).{" "}
-        <i>The NIST Cybersecurity Framework (CSF) 2.0</i>.
-      </>
-    ),
-  },
-  {
-    id: "ref-2",
-    back: "cite-2",
-    label: "^a b",
-    text: (
-      <>
-        <i>
-          ISO/IEC 27001:2022 — Information security, cybersecurity and privacy
-          protection: Information security management systems — Requirements
-        </i>
-        . International Organization for Standardization.
-      </>
-    ),
-  },
-  {
-    id: "ref-3",
-    back: "cite-4",
-    label: "^",
-    text: (
-      <>
-        Anderson, J. P. (1972).{" "}
-        <i>Computer Security Technology Planning Study</i>. Electronic Systems
-        Division, United States Air Force.
-      </>
-    ),
-  },
-  {
-    id: "ref-4",
-    back: "cite-5",
-    label: "^",
-    text: (
-      <>
-        European Union Agency for Cybersecurity (2024).{" "}
-        <i>ENISA Threat Landscape</i>.
-      </>
-    ),
-  },
-  {
-    id: "ref-5",
-    back: "cite-6",
-    label: "^",
-    text: (
-      <>
-        Verizon Business (2024). <i>Data Breach Investigations Report</i>.
-      </>
-    ),
-  },
-  {
-    id: "ref-6",
-    back: "cite-8",
-    label: "^",
-    text: (
-      <>
-        Cybersecurity and Infrastructure Security Agency.{" "}
-        <i>Multi-Factor Authentication: What You Need to Know</i>.
-      </>
-    ),
-  },
+  <>
+    National Institute of Standards and Technology (2024).{" "}
+    <i>The NIST Cybersecurity Framework (CSF) 2.0</i>.
+  </>,
+  <>
+    <i>
+      ISO/IEC 27001:2022 — Information security, cybersecurity and privacy
+      protection: Information security management systems — Requirements
+    </i>
+    . International Organization for Standardization.
+  </>,
+  <>
+    Anderson, J. P. (1972). <i>Computer Security Technology Planning Study</i>.
+    Electronic Systems Division, United States Air Force.
+  </>,
+  <>
+    European Union Agency for Cybersecurity (2024).{" "}
+    <i>ENISA Threat Landscape</i>.
+  </>,
+  <>
+    Verizon Business (2024). <i>Data Breach Investigations Report</i>.
+  </>,
+  <>
+    Cybersecurity and Infrastructure Security Agency.{" "}
+    <i>Multi-Factor Authentication: What You Need to Know</i>.
+  </>,
 ]
 
-export function Article() {
+export function CyberSecurityArticle() {
   return (
     <article>
-      <h1
-        id="firstHeading"
-        className="mt-0.5 mb-0.5 border-b pb-1 font-serif text-[1.8rem] leading-tight font-bold text-balance"
-      >
-        Cyber security
-      </h1>
-      <p className="text-muted-foreground mb-4 text-[0.84rem] italic">
-        From Secpedia, the open study encyclopedia
-      </p>
+      <ArticleHeading />
 
       <div className="wiki-prose">
         <Infobox
@@ -156,7 +108,10 @@ export function Article() {
             ],
             [
               "Standards",
-              "ISO/IEC 27001, NIST Cybersecurity Framework, CIS Controls",
+              <>
+                ISO/IEC 27001, NIST Cybersecurity Framework, CIS Controls; see
+                also <WikiLink page="Australian cyber security standards" />
+              </>,
             ],
             [
               "Typical roles",
@@ -167,17 +122,17 @@ export function Article() {
 
         <p className="hatnote">
           For habits that keep your own accounts and devices safe, see{" "}
-          <DemoLink page="Personal digital hygiene" />.
+          <WikiLink page="Personal digital hygiene" />.
         </p>
 
         <p>
           <b>Cyber security</b> (also written <b>cybersecurity</b>) is the
           practice of protecting computer systems, networks and programs from
           digital attack, unauthorised access, damage or theft.
-          <Cite id="cite-1" to="ref-1" n={1} /> The field studies how attacks
-          are carried out, how they can be prevented or detected, and what
-          organisations should do when defences fail.
-          <Cite id="cite-2" to="ref-2" n={2} />
+          <Cite n={1} first /> The field studies how attacks are carried out,
+          how they can be prevented or detected, and what organisations should
+          do when defences fail.
+          <Cite n={2} first />
         </p>
         <p>
           Its goals are usually summarised by the CIA triad: confidentiality,
@@ -205,7 +160,7 @@ export function Article() {
           <p>
             The <b>CIA triad</b> is the field's model for what security efforts
             protect. Each property suggests its own family of measures:
-            <Cite id="cite-3" to="ref-2" n={2} />
+            <Cite n={2} />
           </p>
           <WikiTable
             head={["Property", "It protects", "Example measures"]}
@@ -264,7 +219,7 @@ export function Article() {
               United States Air Force set out the first structured analysis of
               computer security and the protection goals that later became the
               CIA triad.
-              <Cite id="cite-4" to="ref-3" n={3} />
+              <Cite n={3} first />
             </li>
             <li>
               <b>1988</b>: the Morris worm spreads across the early internet,
@@ -296,10 +251,10 @@ export function Article() {
             techniques rather than one sophisticated trick, and most breaches
             begin with a stolen or guessed credential rather than a novel
             exploit.
-            <Cite id="cite-5" to="ref-4" n={4} /> The human element is involved
-            in roughly two thirds of reported data breaches, which is why
-            procedures and training matter as much as software.
-            <Cite id="cite-6" to="ref-5" n={5} />
+            <Cite n={4} first /> The human element is involved in roughly two
+            thirds of reported data breaches, which is why procedures and
+            training matter as much as software.
+            <Cite n={5} first />
           </p>
           <WikiTable
             head={["Threat", "How it works", "Typical defences"]}
@@ -354,7 +309,7 @@ export function Article() {
             a single failure does not expose everything, an approach known as{" "}
             <b>defence in depth</b>. A typical layering runs from the governance
             of people down to the data itself:
-            <Cite id="cite-7" to="ref-1" n={1} />
+            <Cite n={1} />
           </p>
           <ul>
             <li>
@@ -385,7 +340,7 @@ export function Article() {
           <p>
             Few learners can reshape an organisation, but the personal measures
             below block a large share of attacks:
-            <Cite id="cite-8" to="ref-6" n={6} />
+            <Cite n={6} first />
           </p>
           <ol>
             <li>
@@ -448,7 +403,7 @@ export function Article() {
           <ul>
             {seeAlso.map((page) => (
               <li key={page}>
-                <DemoLink page={page} />
+                <WikiLink page={page} />
               </li>
             ))}
           </ul>
@@ -459,20 +414,7 @@ export function Article() {
           title="References"
           className="text-[0.84rem]"
         >
-          <ol>
-            {references.map((ref, i) => (
-              <li key={ref.id} id={ref.id}>
-                <a
-                  href={`#${ref.back}`}
-                  aria-label={`Jump back to reference ${i + 1}`}
-                  className="mr-1 font-bold"
-                >
-                  {ref.label}
-                </a>{" "}
-                {ref.text}
-              </li>
-            ))}
-          </ol>
+          <References items={references} />
         </Section>
       </div>
     </article>

@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react"
-import { DemoContext } from "./demo-context"
+import { NotifyContext } from "./secpedia-context"
 
 const TOAST_MS = 3400
 
-export function DemoProvider({ children }: { children: ReactNode }) {
+export function NotifyProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState<string | null>(null)
   const timer = useRef<number | undefined>(undefined)
 
@@ -16,7 +16,7 @@ export function DemoProvider({ children }: { children: ReactNode }) {
   useEffect(() => () => window.clearTimeout(timer.current), [])
 
   return (
-    <DemoContext value={notify}>
+    <NotifyContext value={notify}>
       {children}
       <div
         role="status"
@@ -29,6 +29,6 @@ export function DemoProvider({ children }: { children: ReactNode }) {
           </p>
         )}
       </div>
-    </DemoContext>
+    </NotifyContext>
   )
 }
