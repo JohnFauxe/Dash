@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-React 19 + TypeScript 7 dashboard app scaffolded from Vite 8, built with shadcn/ui and Tailwind CSS v4. Lives at `github.com/JohnFauxe/Dash`.
+React 19 + TypeScript 7 study encyclopedia (Secpedia) scaffolded from Vite 8, built with shadcn/ui and Tailwind CSS v4. Lives at `github.com/JohnFauxe/Dash`.
 
 ## Commands
 
@@ -12,8 +12,8 @@ React 19 + TypeScript 7 dashboard app scaffolded from Vite 8, built with shadcn/
 npm run dev        # Vite dev server on :5173
 npm run build      # tsc -b && vite build
 npm test           # vitest run (all tests)
-npx vitest run src/lib/stats.test.ts   # single test file
-npx vitest run -t "averages values"    # single test by name match
+npx vitest run src/lib/routes.test.ts  # single test file
+npx vitest run -t "replaces spaces"    # single test by name match
 npm run typecheck  # tsc -b
 npm run lint       # oxlint (NOT eslint — see Linting)
 npm run format     # prettier --write . — run before every commit (see Formatting)
@@ -38,9 +38,7 @@ Prettier (no semicolons, double quotes) sorts Tailwind classes via `prettier-plu
 
 - **Entry**: `index.html` → `src/main.tsx` (StrictMode, createRoot) → `src/App.tsx` (default export, the home page: **Secpedia**, a Wikipedia-style study encyclopedia built from `src/components/secpedia/`). Each article has a `/wiki/<Title>` URL, routed client-side by `usePathname`/`navigate` (`src/hooks/use-pathname.ts`) with path helpers in `src/lib/routes.ts`; production hosting must serve `index.html` for `/wiki/*`. Written articles are registered in `src/data/secpedia.ts` (metadata) and `App.tsx` (`bodies` map). Internal links are `<WikiLink page=…>`: they navigate to written articles and show a "not written yet" toast for anything else.
 - **Design tokens**: all theme state is CSS variables in `src/index.css` — oklch palette, `--chart-1..5`, sidebar group, radius scale. The `@theme inline` block maps them to Tailwind utilities (`bg-background`, etc.). Dark mode is a class variant (`@custom-variant dark`), not a media query; an inline script in `index.html` toggles `.dark` from the OS colour scheme. Secpedia adds `--link`/`--link-visited` tokens, a `font-serif` (Source Serif 4) and a `.wiki-prose` component layer for article text.
-- **shadcn/ui**: configured in `components.json` (Radix base, nova preset). Components are owned source files generated into `src/components/ui/` by `npx shadcn@latest add <name>` — edit them freely. Adding a component also adds its runtime deps to `package.json` (radix-ui, recharts, etc.). `cn` helper lives in `src/lib/utils.ts`.
-- **Charts**: `src/components/charts/` wraps recharts in shadcn's `<ChartContainer>` (from `src/components/ui/chart`). Chart colors are set through `chartConfig` keys, which ChartContainer exposes as `--color-<key>` CSS variables — bars/fills reference `var(--color-<key>)`, not the palette vars directly.
-- **Data**: typed mock data in `src/data/mock.ts` (e.g. `MonthlyVisits`). UI is built against it before real data sources exist.
+- **shadcn/ui**: configured in `components.json` (Radix base, nova preset). Components are owned source files generated into `src/components/ui/` by `npx shadcn@latest add <name>` — edit them freely. Adding a component also adds its runtime deps to `package.json` (radix-ui, etc.). `cn` helper lives in `src/lib/utils.ts`.
 - **Testable logic**: pure data helpers in `src/lib/` are the primary test target (vitest, colocated `*.test.ts`). Component tests are not set up yet.
 
 ## Git flow
