@@ -35,6 +35,22 @@ export const articles: ArticleMeta[] = [
       "Regulatory compliance",
     ],
   },
+  {
+    title: "CIA triad",
+    lastEdited: "30 October 2026, at 15:05",
+    revisions: 1,
+    categories: ["Cyber security", "Information security", "Security models"],
+  },
+  {
+    title: "Essential Eight",
+    lastEdited: "30 October 2026, at 15:05",
+    revisions: 1,
+    categories: [
+      "Cyber security in Australia",
+      "Information security standards",
+      "Regulatory compliance",
+    ],
+  },
 ]
 
 export function findArticle(title: string): ArticleMeta | undefined {
@@ -45,6 +61,7 @@ export function findArticle(title: string): ArticleMeta | undefined {
 export const pages: string[] = [
   "Cyber security",
   "Australian cyber security standards",
+  "CIA triad",
   "Essential Eight",
   "Information Security Manual",
   "NIST Cybersecurity Framework",

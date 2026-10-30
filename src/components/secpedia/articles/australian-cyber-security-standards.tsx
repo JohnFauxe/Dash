@@ -435,6 +435,9 @@ export function AustralianStandardsArticle() {
         </Section>
 
         <Section anchor="Essential_Eight" title="Essential Eight">
+          <p className="hatnote">
+            Main article: <WikiLink page="Essential Eight" />
+          </p>
           <p>
             The <b>Essential Eight</b> is a prioritised set of eight mitigation
             strategies published by ASD. It is drawn from the larger{" "}

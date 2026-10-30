@@ -6,7 +6,9 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet"
 import { AustralianStandardsArticle } from "@/components/secpedia/articles/australian-cyber-security-standards"
+import { CiaTriadArticle } from "@/components/secpedia/articles/cia-triad"
 import { CyberSecurityArticle } from "@/components/secpedia/articles/cyber-security"
+import { EssentialEightArticle } from "@/components/secpedia/articles/essential-eight"
 import { MissingArticle } from "@/components/secpedia/articles/missing-article"
 import { NotifyProvider } from "@/components/secpedia/notify-provider"
 import {
@@ -24,6 +26,8 @@ import { pathToTitle } from "@/lib/routes"
 const bodies: Record<string, ComponentType> = {
   "Cyber security": CyberSecurityArticle,
   "Australian cyber security standards": AustralianStandardsArticle,
+  "CIA triad": CiaTriadArticle,
+  "Essential Eight": EssentialEightArticle,
 }
 
 export default function App() {

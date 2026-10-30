@@ -157,6 +157,9 @@ export function CyberSecurityArticle() {
             states to be achieved.
           </p>
           <SubHead id="CIA_triad">The CIA triad</SubHead>
+          <p className="hatnote">
+            Main article: <WikiLink page="CIA triad" />
+          </p>
           <p>
             The <b>CIA triad</b> is the field's model for what security efforts
             protect. Each property suggests its own family of measures:
