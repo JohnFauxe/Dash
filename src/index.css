@@ -80,6 +80,11 @@
   --radius: 0.625rem;
   --link: oklch(0.53 0.16 262);
   --link-visited: oklch(0.47 0.14 296);
+  /* Attack types on the threat map, which is dark in both themes. */
+  --threat-1: oklch(0.72 0.19 28);
+  --threat-2: oklch(0.85 0.16 90);
+  --threat-3: oklch(0.8 0.14 175);
+  --threat-4: oklch(0.72 0.15 285);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -166,5 +171,73 @@
     & .hatnote {
       @apply text-muted-foreground mb-2 pl-6 text-[0.88rem] italic;
     }
+  }
+
+  /* Timings add up to LIFETIME_TICKS * TICK_MS in src/lib/threat-map.ts. */
+  .threat-map {
+    & .threat-trail {
+      opacity: 0.45;
+      stroke-dasharray: 1;
+      animation:
+        threat-draw 1.4s ease-in both,
+        threat-fade 0.7s 1.4s both;
+    }
+    & .threat-bolt {
+      stroke-dasharray: 0.12 1.12;
+      animation: threat-fly 1.4s ease-in both;
+    }
+    & .threat-ring {
+      transform-box: fill-box;
+      transform-origin: center;
+      opacity: 0;
+      animation: threat-hit 0.7s 1.4s ease-out;
+    }
+    &[data-running="false"] * {
+      animation-play-state: paused;
+    }
+    @media (prefers-reduced-motion: reduce) {
+      & .threat-trail {
+        animation: none;
+      }
+      & .threat-ring {
+        animation: none;
+        opacity: 1;
+      }
+      & .threat-bolt {
+        display: none;
+      }
+    }
+  }
+}
+
+@keyframes threat-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+@keyframes threat-fade {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes threat-fly {
+  from {
+    stroke-dashoffset: 0.12;
+  }
+  to {
+    stroke-dashoffset: -1;
+  }
+}
+@keyframes threat-hit {
+  from {
+    opacity: 1;
+    transform: scale(0.1);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1);
   }
 }

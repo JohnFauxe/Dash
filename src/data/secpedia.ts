@@ -51,6 +51,12 @@ export const articles: ArticleMeta[] = [
       "Regulatory compliance",
     ],
   },
+  {
+    title: "Cyber threat map",
+    lastEdited: "30 October 2026, at 16:20",
+    revisions: 1,
+    categories: ["Cyber security", "Data visualisation"],
+  },
 ]
 
 export function findArticle(title: string): ArticleMeta | undefined {
@@ -63,6 +69,7 @@ export const pages: string[] = [
   "Australian cyber security standards",
   "CIA triad",
   "Essential Eight",
+  "Cyber threat map",
   "Information Security Manual",
   "NIST Cybersecurity Framework",
   "Security of Critical Infrastructure Act 2018",
@@ -102,6 +109,7 @@ export const navGroups: NavGroup[] = [
       { label: "Network security", page: "Network security" },
       { label: "Cryptography", page: "Cryptography" },
       { label: "Incident response", page: "Incident response" },
+      { label: "Threat map", page: "Cyber threat map" },
     ],
   },
   {

@@ -8,6 +8,7 @@ import {
 import { AustralianStandardsArticle } from "@/components/secpedia/articles/australian-cyber-security-standards"
 import { CiaTriadArticle } from "@/components/secpedia/articles/cia-triad"
 import { CyberSecurityArticle } from "@/components/secpedia/articles/cyber-security"
+import { CyberThreatMapArticle } from "@/components/secpedia/articles/cyber-threat-map"
 import { EssentialEightArticle } from "@/components/secpedia/articles/essential-eight"
 import { MissingArticle } from "@/components/secpedia/articles/missing-article"
 import { NotifyProvider } from "@/components/secpedia/notify-provider"
@@ -28,6 +29,7 @@ const bodies: Record<string, ComponentType> = {
   "Australian cyber security standards": AustralianStandardsArticle,
   "CIA triad": CiaTriadArticle,
   "Essential Eight": EssentialEightArticle,
+  "Cyber threat map": CyberThreatMapArticle,
 }
 
 export default function App() {
