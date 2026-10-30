@@ -1,0 +1,351 @@
+import {
+  placeholderFor,
+  type Cable,
+  type Position,
+  type Region,
+} from "@/lib/cable-map"
+
+const stations = {
+  Accra: [-0.2, 5.6],
+  Alexandria: [29.9, 31.2],
+  Bandon: [-124.4, 43.1],
+  Bilbao: [-3, 43.4],
+  Bude: [-4.5, 50.8],
+  Busan: [129.1, 35.1],
+  "Cape Town": [18.4, -33.9],
+  Chennai: [80.3, 13],
+  Dakar: [-17.4, 14.7],
+  "Dar es Salaam": [39.3, -6.8],
+  Darwin: [130.8, -12.4],
+  Djibouti: [43.1, 11.6],
+  Dublin: [-6.2, 53.4],
+  Durban: [31, -29.9],
+  Fortaleza: [-38.5, -3.7],
+  Fujairah: [56.4, 25.1],
+  Guam: [144.7, 13.4],
+  Hawaii: [-158, 21.4],
+  Helsinki: [24.9, 60.2],
+  Holyhead: [-4.6, 53.3],
+  "Hong Kong": [114.2, 22.2],
+  Jakarta: [106.8, -6],
+  Jeddah: [39.1, 21.5],
+  Karachi: [66.9, 24.8],
+  Lagos: [3.4, 6.4],
+  "Los Angeles": [-118.4, 33.9],
+  Luanda: [13.2, -8.8],
+  Manila: [120.9, 14.5],
+  Marseille: [5.4, 43.3],
+  Miami: [-80.1, 25.8],
+  Mombasa: [39.7, -4],
+  Mumbai: [72.8, 19],
+  "New Jersey": [-74, 40],
+  Oregon: [-124, 45.2],
+  Perth: [115.7, -32],
+  "Port Hedland": [118.6, -20.3],
+  Rostock: [12.1, 54.2],
+  "Saint-Hilaire-de-Riez": [-2, 46.7],
+  Santos: [-46.3, -24],
+  Sesimbra: [-9.1, 38.4],
+  Shanghai: [121.9, 31.5],
+  Shima: [136.9, 34.3],
+  Singapore: [103.9, 1.3],
+  Sines: [-8.9, 37.9],
+  Suez: [32.5, 29.9],
+  Suva: [178.4, -18.1],
+  Sydney: [151.3, -33.9],
+  Takapuna: [174.8, -36.8],
+  Tutuila: [-170.7, -14.3],
+  Valparaíso: [-71.6, -33],
+  "Virginia Beach": [-76, 36.85],
+} satisfies Record<string, Position>
+
+type Station = keyof typeof stations
+
+/** Where cables pass through: from Singapore out to the Indian Ocean. */
+const malacca: Position[] = [
+  [103.5, 1.1],
+  [101.2, 2.7],
+  [99.5, 4],
+  [97, 6.2],
+]
+/** Round the south of Sri Lanka, between the Bay of Bengal and Arabian Sea. */
+const sriLanka: Position[] = [
+  [82.6, 8],
+  [82, 5.6],
+  [77.5, 6.5],
+  [75, 9],
+  [71.5, 16],
+]
+/** From the Gulf of Aden, up the Red Sea to Suez. */
+const redSea: Position[] = [
+  [43.3, 12.7],
+  [38.5, 20],
+  [34, 27.5],
+  [33.2, 28.2],
+]
+/** Suez canal to the western Mediterranean. */
+const mediterranean: Position[] = [
+  [32.3, 31.5],
+  [15, 35],
+  [11, 37.7],
+  [7, 38.5],
+]
+/** Past the Horn of Africa, from the Arabian Sea into the Gulf of Aden. */
+const aden: Position[] = [
+  [60.5, 23],
+  [60, 18],
+  [52, 13],
+  [45, 11.8],
+]
+
+/** Along the coast of West Africa, between the Gulf of Guinea and Dakar. */
+const guinea: Position[] = [
+  [-1, 4.4],
+  [-4, 4],
+  [-10, 3.5],
+  [-15.5, 8],
+  [-18.5, 12],
+]
+
+function cable(name: string, region: Region, path: (Station | Position)[]) {
+  return { name, region, path }
+}
+
+const sketches = [
+  cable("MAREA", "Atlantic", [
+    "Virginia Beach",
+    [-50, 41],
+    [-10, 45.5],
+    "Bilbao",
+  ]),
+  cable("Dunant", "Atlantic", [
+    "Virginia Beach",
+    [-50, 43],
+    [-10, 47.5],
+    "Saint-Hilaire-de-Riez",
+  ]),
+  cable("Grace Hopper", "Atlantic", [
+    "New Jersey",
+    [-70, 39],
+    [-45, 46],
+    [-10, 49.5],
+    "Bude",
+  ]),
+  cable("EllaLink", "Atlantic", ["Fortaleza", [-25, 15], [-17, 32.6], "Sines"]),
+  cable("Monet", "Atlantic", [
+    "Miami",
+    [-65, 20],
+    [-35, 2],
+    "Fortaleza",
+    [-36.5, -3.5],
+    [-34, -6],
+    [-33, -12],
+    [-38, -20],
+    [-42, -24.5],
+    "Santos",
+  ]),
+  cable("SACS", "Atlantic", ["Fortaleza", [-30, -6], "Luanda"]),
+
+  cable("Southern Cross", "Pacific", [
+    "Sydney",
+    [172.5, -33.8],
+    [175.2, -35.5],
+    "Takapuna",
+    [178, -30],
+    "Suva",
+    "Hawaii",
+    "Los Angeles",
+  ]),
+  cable("Hawaiki", "Pacific", [
+    "Sydney",
+    [172, -33],
+    [175.5, -34.5],
+    "Tutuila",
+    "Hawaii",
+    "Oregon",
+  ]),
+  cable("FASTER", "Pacific", ["Bandon", [180, 43], [142, 34], "Shima"]),
+  cable("Trans-Pacific Express", "Pacific", [
+    "Oregon",
+    [180, 45],
+    [142, 33],
+    [131, 30],
+    [128.5, 33],
+    "Busan",
+    "Shanghai",
+  ]),
+  cable("JUPITER", "Pacific", [
+    "Los Angeles",
+    [180, 37],
+    [142, 33],
+    "Shima",
+    [130, 22],
+    "Manila",
+  ]),
+  cable("Curie", "Pacific", [
+    "Los Angeles",
+    [-118, 28],
+    [-105, 15],
+    [-90, 0],
+    [-82, -15],
+    "Valparaíso",
+  ]),
+  cable("PPC-1", "Pacific", [
+    "Sydney",
+    [155, -30],
+    [158, -22],
+    [150, -5],
+    "Guam",
+  ]),
+
+  cable("Australia–Singapore Cable", "Indian Ocean & Asia", [
+    "Perth",
+    [110, -25],
+    [105, -9],
+    "Jakarta",
+    [107, -3],
+    "Singapore",
+  ]),
+  cable("North West Cable System", "Indian Ocean & Asia", [
+    "Darwin",
+    [122, -13],
+    [116, -18],
+    "Port Hedland",
+  ]),
+  cable("i2i", "Indian Ocean & Asia", ["Singapore", ...malacca, "Chennai"]),
+  cable("Asia Pacific Gateway", "Indian Ocean & Asia", [
+    "Singapore",
+    [108, 8],
+    "Hong Kong",
+    [118, 21.5],
+    [122, 21],
+    [123, 25],
+    [122.5, 30],
+    "Shanghai",
+    "Busan",
+    [129, 33],
+    [131, 30.5],
+    [136, 33],
+    "Shima",
+  ]),
+  cable("SEA-ME-WE 4", "Indian Ocean & Asia", [
+    "Singapore",
+    ...malacca,
+    "Chennai",
+    ...sriLanka,
+    "Mumbai",
+    [69, 20.5],
+    [66.5, 23.5],
+    "Karachi",
+    "Fujairah",
+    ...aden,
+    "Djibouti",
+    ...redSea,
+    "Suez",
+    ...mediterranean,
+    "Marseille",
+  ]),
+  cable("Falcon", "Indian Ocean & Asia", [
+    "Mumbai",
+    "Fujairah",
+    ...aden,
+    "Djibouti",
+    [43.3, 12.7],
+    "Jeddah",
+  ]),
+
+  cable("WACS", "Africa", [
+    "Cape Town",
+    [12, -22],
+    [11, -14],
+    "Luanda",
+    [7, -2],
+    "Lagos",
+    [2, 5.5],
+    "Accra",
+    ...guinea,
+    "Dakar",
+    [-19, 28],
+    "Sesimbra",
+    [-11, 44],
+    "Bude",
+  ]),
+  cable("SAT-3", "Africa", [
+    "Cape Town",
+    [10, -20],
+    "Luanda",
+    [5, 2],
+    "Accra",
+    ...guinea,
+    "Dakar",
+    [-18, 30],
+    "Sesimbra",
+  ]),
+  cable("Equiano", "Africa", [
+    "Sesimbra",
+    [-22, 22],
+    [-20, 4],
+    [-5, 2.5],
+    "Lagos",
+    [3, -8],
+    [11, -28],
+    "Cape Town",
+  ]),
+  cable("EASSy", "Africa", [
+    "Durban",
+    [37, -24],
+    [42, -14],
+    [40.5, -8],
+    "Dar es Salaam",
+    "Mombasa",
+    [42.5, -3],
+    [49, 2],
+    [52.5, 9],
+    [52.5, 12.2],
+    [45, 11.8],
+    "Djibouti",
+  ]),
+  cable("SEACOM", "Africa", [
+    "Durban",
+    [40, -22],
+    [44, -12],
+    "Dar es Salaam",
+    "Mombasa",
+    [55, 8],
+    "Mumbai",
+  ]),
+
+  cable("C-Lion1", "Europe", [
+    "Helsinki",
+    [20, 58],
+    [18.5, 56],
+    [16, 55.2],
+    "Rostock",
+  ]),
+  cable("CeltixConnect", "Europe", ["Dublin", "Holyhead"]),
+  cable("Medusa", "Europe", [
+    "Sines",
+    [-9.5, 36.5],
+    [-6.5, 35.9],
+    [-5.6, 35.95],
+    [3, 37.5],
+    [10, 37.6],
+    [20, 34.5],
+    "Alexandria",
+  ]),
+]
+
+/**
+ * PLACEHOLDER DATA. The names and landing points follow real cables, on routes
+ * sketched by hand. Operator, capacity, fibre pairs and service year are made
+ * up for every cable; replace them with a real source before relying on them.
+ */
+export const cables: Cable[] = sketches.map(({ name, region, path }, i) => ({
+  name,
+  region,
+  landings: path.flatMap((leg) =>
+    typeof leg === "string" ? [{ name: leg, at: stations[leg] }] : [],
+  ),
+  route: path.map((leg) => (typeof leg === "string" ? stations[leg] : leg)),
+  ...placeholderFor(i),
+}))

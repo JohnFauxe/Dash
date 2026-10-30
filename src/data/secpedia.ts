@@ -57,6 +57,12 @@ export const articles: ArticleMeta[] = [
     revisions: 1,
     categories: ["Cyber security", "Data visualisation"],
   },
+  {
+    title: "Undersea cable map",
+    lastEdited: "30 October 2026, at 17:00",
+    revisions: 1,
+    categories: ["Critical infrastructure", "Data visualisation"],
+  },
 ]
 
 export function findArticle(title: string): ArticleMeta | undefined {
@@ -70,6 +76,7 @@ export const pages: string[] = [
   "CIA triad",
   "Essential Eight",
   "Cyber threat map",
+  "Undersea cable map",
   "Information Security Manual",
   "NIST Cybersecurity Framework",
   "Security of Critical Infrastructure Act 2018",
@@ -110,6 +117,7 @@ export const navGroups: NavGroup[] = [
       { label: "Cryptography", page: "Cryptography" },
       { label: "Incident response", page: "Incident response" },
       { label: "Threat map", page: "Cyber threat map" },
+      { label: "Cable map", page: "Undersea cable map" },
     ],
   },
   {

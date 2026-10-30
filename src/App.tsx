@@ -11,6 +11,7 @@ import { CyberSecurityArticle } from "@/components/secpedia/articles/cyber-secur
 import { CyberThreatMapArticle } from "@/components/secpedia/articles/cyber-threat-map"
 import { EssentialEightArticle } from "@/components/secpedia/articles/essential-eight"
 import { MissingArticle } from "@/components/secpedia/articles/missing-article"
+import { UnderseaCableMapArticle } from "@/components/secpedia/articles/undersea-cable-map"
 import { NotifyProvider } from "@/components/secpedia/notify-provider"
 import {
   CategoryBar,
@@ -30,6 +31,7 @@ const bodies: Record<string, ComponentType> = {
   "CIA triad": CiaTriadArticle,
   "Essential Eight": EssentialEightArticle,
   "Cyber threat map": CyberThreatMapArticle,
+  "Undersea cable map": UnderseaCableMapArticle,
 }
 
 export default function App() {

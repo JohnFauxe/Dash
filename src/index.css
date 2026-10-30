@@ -85,6 +85,12 @@
   --threat-2: oklch(0.85 0.16 90);
   --threat-3: oklch(0.8 0.14 175);
   --threat-4: oklch(0.72 0.15 285);
+  /* Regions on the cable map, which is dark in both themes. */
+  --cable-1: #3987e5;
+  --cable-2: #d95926;
+  --cable-3: #199e70;
+  --cable-4: #c98500;
+  --cable-5: #d55181;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
