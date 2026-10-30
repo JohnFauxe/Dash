@@ -14,15 +14,10 @@ export type Region = (typeof REGIONS)[number]["name"]
 /** A [longitude, latitude] position. */
 export type Position = [number, number]
 
-export type Placeholder = {
-  operator: string
-  capacityTbps: number
-  fibrePairs: number
-  readyForService: number
-}
-
-export type Cable = Placeholder & {
+export type Cable = {
   name: string
+  /** The cable's ID in the live feeds and cable directory. */
+  slug: string
   region: Region
   landings: { name: string; at: Position }[]
   /** Hand-sketched waypoints joined by great arcs, not a surveyed route. */
@@ -31,16 +26,6 @@ export type Cable = Placeholder & {
 
 export function colorOf(region: Region) {
   return REGIONS.find((r) => r.name === region)?.color
-}
-
-/** Made-up figures, derived from `seed` so they are stable between loads. */
-export function placeholderFor(seed: number): Placeholder {
-  return {
-    operator: `Example Consortium ${String.fromCharCode(65 + (seed % 26))}`,
-    capacityTbps: 20 + ((seed * 47) % 38) * 10,
-    fibrePairs: 2 + ((seed * 5) % 11),
-    readyForService: 2001 + ((seed * 7) % 25),
-  }
 }
 
 const EARTH_RADIUS_KM = 6371

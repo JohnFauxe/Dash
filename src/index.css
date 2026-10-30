@@ -91,6 +91,9 @@
   --cable-3: #199e70;
   --cable-4: #c98500;
   --cable-5: #d55181;
+  --status-critical: #d03b3b;
+  --status-serious: #ec835a;
+  --status-warning: #fab219;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);

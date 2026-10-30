@@ -27,12 +27,12 @@ export function UnderseaCableMapArticle() {
           cables have the fewest alternatives when one fails.
         </p>
 
-        <Callout title="This map uses placeholder data">
+        <Callout title="Reading the live status">
           <p className="mb-1">
-            The map shows a small selection of cables, not all of them. Names
-            and landing points follow real cables, but routes are sketched by
-            hand. Each cable's operator, capacity, fibre pairs and service year
-            are made up.
+            Faults come from public reports, so they can lag real events, and a
+            cable with no report is not proven healthy. The map shows a small
+            selection of the world's cables, on routes sketched by hand. Open
+            incidents on other cables still appear in the list below it.
           </p>
         </Callout>
 

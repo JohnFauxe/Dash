@@ -8,7 +8,6 @@ import {
   filterCables,
   fitBounds,
   panBy,
-  placeholderFor,
   routeLengthKm,
   zoomAt,
   type Region,
@@ -23,19 +22,6 @@ describe("cables", () => {
   it("all land at least twice", () => {
     for (const cable of cables)
       expect(cable.landings.length, cable.name).toBeGreaterThanOrEqual(2)
-  })
-})
-
-describe("placeholderFor", () => {
-  it("is stable for a seed", () =>
-    expect(placeholderFor(7)).toEqual(placeholderFor(7)))
-  it("stays within plausible ranges", () => {
-    for (let seed = 0; seed < 100; seed++) {
-      const p = placeholderFor(seed)
-      expect(p.capacityTbps).toBeGreaterThan(0)
-      expect(p.fibrePairs).toBeGreaterThanOrEqual(2)
-      expect(p.readyForService).toBeLessThanOrEqual(2025)
-    }
   })
 })
 

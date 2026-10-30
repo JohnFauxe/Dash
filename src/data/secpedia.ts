@@ -59,8 +59,8 @@ export const articles: ArticleMeta[] = [
   },
   {
     title: "Undersea cable map",
-    lastEdited: "30 October 2026, at 17:00",
-    revisions: 1,
+    lastEdited: "30 October 2026, at 17:30",
+    revisions: 2,
     categories: ["Critical infrastructure", "Data visualisation"],
   },
 ]

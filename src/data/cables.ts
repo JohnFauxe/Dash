@@ -1,9 +1,4 @@
-import {
-  placeholderFor,
-  type Cable,
-  type Position,
-  type Region,
-} from "@/lib/cable-map"
+import type { Cable, Position, Region } from "@/lib/cable-map"
 
 const stations = {
   Accra: [-0.2, 5.6],
@@ -335,17 +330,47 @@ const sketches = [
   ]),
 ]
 
+/** Our short names to the slugs used by the live feeds and cable directory. */
+const slugs: Record<string, string> = {
+  MAREA: "marea",
+  Dunant: "dunant",
+  "Grace Hopper": "grace-hopper",
+  EllaLink: "ellalink",
+  Monet: "monet",
+  SACS: "south-atlantic-cable-system-sacs",
+  "Southern Cross": "southern-cross-cable-network-sccn",
+  Hawaiki: "hawaiki",
+  FASTER: "faster",
+  "Trans-Pacific Express": "trans-pacific-express-tpe-cable-system",
+  JUPITER: "jupiter",
+  Curie: "curie",
+  "PPC-1": "pipe-pacific-cable-1-ppc-1",
+  "Australia–Singapore Cable": "australia-singapore-cable-asc",
+  "North West Cable System": "north-west-cable-system",
+  i2i: "i2i-cable-network-i2icn",
+  "Asia Pacific Gateway": "asia-pacific-gateway-apg",
+  "SEA-ME-WE 4": "seamewe-4",
+  Falcon: "falcon",
+  WACS: "west-africa-cable-system-wacs",
+  "SAT-3": "sat-3wasc",
+  Equiano: "equiano",
+  EASSy: "eastern-africa-submarine-system-eassy",
+  SEACOM: "seacomtata-tgn-eurasia",
+  "C-Lion1": "c-lion1",
+  CeltixConnect: "celtixconnect-1-cc-1",
+  Medusa: "medusa-submarine-cable-system",
+}
+
 /**
- * PLACEHOLDER DATA. The names and landing points follow real cables, on routes
- * sketched by hand. Operator, capacity, fibre pairs and service year are made
- * up for every cable; replace them with a real source before relying on them.
+ * Names and landing points follow real cables, on routes sketched by hand.
+ * Live status and real cable details are fetched by `useCableStatus`.
  */
-export const cables: Cable[] = sketches.map(({ name, region, path }, i) => ({
+export const cables: Cable[] = sketches.map(({ name, region, path }) => ({
   name,
+  slug: slugs[name],
   region,
   landings: path.flatMap((leg) =>
     typeof leg === "string" ? [{ name: leg, at: stations[leg] }] : [],
   ),
   route: path.map((leg) => (typeof leg === "string" ? stations[leg] : leg)),
-  ...placeholderFor(i),
 }))

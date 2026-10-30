@@ -1,12 +1,23 @@
 import { useEffect, useRef, useState, type PointerEvent } from "react"
 import { geoNaturalEarth1, geoPath } from "d3-geo"
-import { MinusIcon, PlusIcon, RotateCcwIcon, XIcon } from "lucide-react"
+import {
+  ActivityIcon,
+  CircleXIcon,
+  ExternalLinkIcon,
+  MinusIcon,
+  PlusIcon,
+  RotateCcwIcon,
+  TriangleAlertIcon,
+  XIcon,
+  type LucideIcon,
+} from "lucide-react"
 import { feature } from "topojson-client"
 import type { GeometryCollection, Topology } from "topojson-specification"
 import land from "world-atlas/land-50m.json"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cables } from "@/data/cables"
+import { useCableStatus } from "@/hooks/use-cable-status"
 import {
   FULL_VIEW,
   MAX_ZOOM,
@@ -21,6 +32,13 @@ import {
   type Cable,
   type Region,
 } from "@/lib/cable-map"
+import {
+  FAULT_LEVELS,
+  faultLevelStyle,
+  incidentsFor,
+  type FaultLevel,
+  type Incident,
+} from "@/lib/cable-status"
 import { cn } from "@/lib/utils"
 
 const SIZE = { width: 960, height: 500 }
@@ -52,6 +70,72 @@ function Swatch({ region }: { region: Region }) {
   )
 }
 
+const levelIcons: Record<FaultLevel, LucideIcon> = {
+  confirmed: CircleXIcon,
+  suspected: TriangleAlertIcon,
+  observed: ActivityIcon,
+}
+
+/** Status is always icon + label, never colour alone. */
+function LevelLabel({ level }: { level: FaultLevel }) {
+  const { label, color } = faultLevelStyle(level)
+  const Icon = levelIcons[level]
+  return (
+    <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+      <Icon className="size-3.5 shrink-0" style={{ color }} aria-hidden />
+      {label}
+    </span>
+  )
+}
+
+function LevelIcon({ level }: { level: FaultLevel }) {
+  const { label, color } = faultLevelStyle(level)
+  const Icon = levelIcons[level]
+  return <Icon className="size-3.5" style={{ color }} aria-label={label} />
+}
+
+function formatDate(iso?: string) {
+  const date = new Date(iso ?? "")
+  return Number.isNaN(date.getTime())
+    ? "unknown"
+    : date.toLocaleDateString("en-AU", { dateStyle: "medium" })
+}
+
+function ExternalLink({ href, children }: { href: string; children: string }) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noreferrer"
+      className="inline-flex items-center gap-1 underline"
+    >
+      {children}
+      <ExternalLinkIcon className="size-3" aria-hidden />
+    </a>
+  )
+}
+
+function IncidentRow({ incident }: { incident: Incident }) {
+  return (
+    <li className="border-t py-1.5 first:border-t-0">
+      <div className="flex flex-wrap items-center gap-x-3">
+        <LevelLabel level={incident.level} />
+        <b>{incident.title}</b>
+      </div>
+      <div className="text-muted-foreground text-xs">
+        {incident.phase} · {incident.severity} severity · updated{" "}
+        {formatDate(incident.lastUpdatedAt)}
+        {incident.expectedRestoreAt &&
+          ` · repair estimate ${formatDate(incident.expectedRestoreAt)}`}
+        {incident.faultPoint &&
+          !incident.exactLocation &&
+          " · marker is approximate"}
+      </div>
+      <ExternalLink href={incident.url}>Incident report</ExternalLink>
+    </li>
+  )
+}
+
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div>
@@ -73,11 +157,21 @@ export function CableMap() {
     y: number
     flip: boolean
   }>()
+  const status = useCableStatus()
+  const { incidents, alerts, directory } = status
   const svgRef = useRef<SVGSVGElement>(null)
   const drag = useRef({ x: 0, y: 0, active: false, moved: false })
 
   const visible = filterCables(sorted, query, hidden)
   const selected = visible.find((cable) => cable.name === selectedName)
+
+  const levelFor = (cable: Cable): FaultLevel | undefined =>
+    incidents ? incidentsFor(incidents, cable.slug)[0]?.level : undefined
+  const faultyOnMap = cables.filter(levelFor).length
+  const selectedIncidents =
+    selected && incidents ? incidentsFor(incidents, selected.slug) : []
+  const selectedAlerts = alerts?.filter((a) => a.slug === selected?.slug) ?? []
+  const selectedFacts = selected && directory?.get(selected.slug)
 
   // React's wheel listener is passive. Native lets the map stop the page
   // scrolling, but only while it can still zoom in that direction.
@@ -151,10 +245,10 @@ export function CableMap() {
     setView(fitBounds(toPath.bounds(line(cable)), SIZE))
   }
 
-  // The selected cable paints last, on top of everything else.
-  const drawOrder = [...visible].sort(
-    (a, b) => Number(a === selected) - Number(b === selected),
-  )
+  // Faults paint above healthy cables, and the selected cable above everything.
+  const rank = (cable: Cable) =>
+    cable === selected ? 2 : levelFor(cable) ? 1 : 0
+  const drawOrder = [...visible].sort((a, b) => rank(a) - rank(b))
 
   return (
     <figure className="dark bg-background text-foreground my-4 max-w-6xl rounded-sm border p-3">
@@ -162,6 +256,16 @@ export function CableMap() {
         <b>Undersea cables</b>
         <span className="text-muted-foreground">
           {visible.length} of {cables.length} shown
+        </span>
+        <span role="status" className="text-muted-foreground">
+          {status.loading && "Checking live status…"}
+          {!status.loading &&
+            !incidents &&
+            "Live status unavailable, so faults are not shown"}
+          {incidents &&
+            `${incidents.length} open ${incidents.length === 1 ? "incident" : "incidents"} worldwide, on ${faultyOnMap} of these cables · checked ${status.updatedAt?.toLocaleTimeString("en-AU", { timeStyle: "short" })}`}
+          {incidents && status.failed && " · latest refresh failed"}
+          {status.truncated && " · some incidents may be missing"}
         </span>
         <div
           role="group"
@@ -194,7 +298,7 @@ export function CableMap() {
             ref={svgRef}
             viewBox={`${view.x} ${view.y} ${SIZE.width / view.k} ${SIZE.height / view.k}`}
             role="img"
-            aria-label="World map of undersea cables, coloured by region. The list beside it has the same cables."
+            aria-label="World map of undersea cables, coloured by region, with faults dashed. The lists around it have the same information."
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -210,6 +314,8 @@ export function CableMap() {
             {drawOrder.map((cable) => {
               const isSelected = cable === selected
               const d = routes.get(cable.name)
+              const level = levelFor(cable)
+              const fault = level && faultLevelStyle(level)
               return (
                 <g
                   key={cable.name}
@@ -231,13 +337,32 @@ export function CableMap() {
                   />
                   <path
                     d={d}
-                    stroke={colorOf(cable.region)}
-                    strokeWidth={isSelected ? 3 : 1.5}
+                    stroke={fault?.color ?? colorOf(cable.region)}
+                    strokeWidth={isSelected ? 3.5 : fault ? 2.5 : 1.5}
+                    strokeDasharray={fault?.dash}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     vectorEffect="non-scaling-stroke"
                   />
                 </g>
+              )
+            })}
+            {incidents?.map((incident) => {
+              const at = incident.faultPoint && projection(incident.faultPoint)
+              if (!at) return null
+              return (
+                <circle
+                  key={incident.ref}
+                  cx={at[0]}
+                  cy={at[1]}
+                  r={5 / view.k}
+                  fill={faultLevelStyle(incident.level).color}
+                  strokeWidth={2}
+                  vectorEffect="non-scaling-stroke"
+                  className="stroke-card"
+                >
+                  <title>{incident.title}</title>
+                </circle>
               )
             })}
             {selected?.landings.map(({ name, at }) => {
@@ -271,6 +396,9 @@ export function CableMap() {
                 {hover.cable.landings.at(0)?.name} –{" "}
                 {hover.cable.landings.at(-1)?.name}
               </div>
+              {levelFor(hover.cable) && (
+                <LevelLabel level={levelFor(hover.cable)!} />
+              )}
             </div>
           )}
 
@@ -326,6 +454,11 @@ export function CableMap() {
                 >
                   <Swatch region={cable.region} />
                   <span className="truncate">{cable.name}</span>
+                  {levelFor(cable) && (
+                    <span className="ml-auto">
+                      <LevelIcon level={levelFor(cable)!} />
+                    </span>
+                  )}
                 </button>
               </li>
             ))}
@@ -338,52 +471,172 @@ export function CableMap() {
         </div>
       </div>
 
-      <figcaption
-        aria-live="polite"
-        className="bg-muted mt-3 min-h-24 rounded-sm px-3 py-2 text-[0.84rem]"
-      >
-        {selected ? (
-          <>
-            <div className="flex items-center gap-2">
-              <Swatch region={selected.region} />
-              <b>{selected.name}</b>
-              <span className="text-muted-foreground">{selected.region}</span>
-              <Button
-                variant="ghost"
-                size="icon-xs"
-                aria-label="Clear selection"
-                className="ml-auto"
-                onClick={() => setSelectedName(null)}
-              >
-                <XIcon />
-              </Button>
+      <figcaption className="mt-3 space-y-3 text-[0.84rem]">
+        <div
+          aria-live="polite"
+          className="bg-muted min-h-24 rounded-sm px-3 py-2"
+        >
+          {selected ? (
+            <>
+              <div className="flex flex-wrap items-center gap-x-2">
+                <Swatch region={selected.region} />
+                <b>{selected.name}</b>
+                <span className="text-muted-foreground">{selected.region}</span>
+                <Button
+                  variant="ghost"
+                  size="icon-xs"
+                  aria-label="Clear selection"
+                  className="ml-auto"
+                  onClick={() => setSelectedName(null)}
+                >
+                  <XIcon />
+                </Button>
+              </div>
+              <div className="mb-2">
+                {selected.landings.map((l) => l.name).join(" – ")}
+              </div>
+              <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-4">
+                <Fact
+                  label="Owners"
+                  value={selectedFacts?.owners.join(", ") || "Not available"}
+                />
+                <Fact
+                  label="Length"
+                  value={
+                    selectedFacts?.lengthKm
+                      ? `${selectedFacts.lengthKm.toLocaleString("en-AU")} km`
+                      : "Not available"
+                  }
+                />
+                <Fact
+                  label="Ready for service"
+                  value={String(selectedFacts?.rfsYear ?? "Not available")}
+                />
+                <Fact
+                  label="Sketched route"
+                  value={`${routeLengthKm(selected.route).toLocaleString("en-AU")} km`}
+                />
+              </dl>
+              <div className="mt-2">
+                {!incidents && (
+                  <span className="text-muted-foreground">
+                    Status unavailable.
+                  </span>
+                )}
+                {incidents && selectedIncidents.length === 0 && (
+                  <span className="text-muted-foreground">
+                    No reported fault. This does not guarantee the cable is
+                    healthy.
+                  </span>
+                )}
+                {selectedIncidents.length > 0 && (
+                  <ul className="m-0! list-none! space-y-0!">
+                    {selectedIncidents.map((incident) => (
+                      <IncidentRow key={incident.ref} incident={incident} />
+                    ))}
+                  </ul>
+                )}
+              </div>
+              {selectedAlerts.map((alert) => (
+                <div
+                  key={alert.id}
+                  className="text-muted-foreground mt-1 text-xs"
+                >
+                  Latency alert, not a confirmed fault: {alert.verdict}.{" "}
+                  <ExternalLink href={alert.url}>Details</ExternalLink>
+                </div>
+              ))}
+            </>
+          ) : (
+            <span className="text-muted-foreground">
+              Select a cable on the map or in the list for its details. Scroll
+              or use the buttons to zoom, and drag to move around.
+            </span>
+          )}
+        </div>
+
+        {incidents && (
+          <section aria-label="Open incidents">
+            <div className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <b>Open incidents</b>
+              {FAULT_LEVELS.map(({ id, color, dash }) => (
+                <span
+                  key={id}
+                  className="inline-flex items-center gap-1.5 text-xs"
+                >
+                  <svg aria-hidden width="28" height="4">
+                    <line
+                      x1="1"
+                      x2="27"
+                      y1="2"
+                      y2="2"
+                      stroke={color}
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeDasharray={dash}
+                    />
+                  </svg>
+                  <LevelLabel level={id} />
+                </span>
+              ))}
             </div>
-            <div className="mb-2">
-              {selected.landings.map((l) => l.name).join(" – ")}
-            </div>
-            <dl className="m-0 grid grid-cols-2 gap-x-6 gap-y-1 sm:grid-cols-5">
-              <Fact label="Operator" value={selected.operator} />
-              <Fact label="Capacity" value={`${selected.capacityTbps} Tbps`} />
-              <Fact label="Fibre pairs" value={String(selected.fibrePairs)} />
-              <Fact
-                label="In service"
-                value={String(selected.readyForService)}
-              />
-              <Fact
-                label="Sketched route"
-                value={`${routeLengthKm(selected.route).toLocaleString("en-AU")} km`}
-              />
-            </dl>
-            <div className="text-muted-foreground mt-1 text-xs">
-              Operator, capacity, fibre pairs and year are placeholders.
-            </div>
-          </>
-        ) : (
-          <span className="text-muted-foreground">
-            Select a cable on the map or in the list for its details. Scroll or
-            use the buttons to zoom, and drag to move around.
-          </span>
+            {incidents.length === 0 ? (
+              <span className="text-muted-foreground">
+                None reported right now.
+              </span>
+            ) : (
+              <ul className="m-0! max-h-72 list-none! space-y-0! overflow-y-auto">
+                {incidents.map((incident) => (
+                  <IncidentRow key={incident.ref} incident={incident} />
+                ))}
+              </ul>
+            )}
+          </section>
         )}
+
+        {alerts && alerts.length > 0 && (
+          <section aria-label="Latency alerts">
+            <b>Under observation</b>
+            <span className="text-muted-foreground ml-2 text-xs">
+              Latency alerts, not confirmed faults. They do not change the map.
+            </span>
+            <ul className="m-0! list-none! space-y-0!">
+              {alerts.map((alert) => (
+                <li key={alert.id} className="text-xs">
+                  {alert.cableName}: {alert.verdict} ·{" "}
+                  <ExternalLink href={alert.url}>Details</ExternalLink>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
+
+        <p className="text-muted-foreground m-0! text-xs">
+          Status and incidents:{" "}
+          <a href="https://submarinecablestatus.com" className="underline">
+            Submarine Cable Status
+          </a>{" "}
+          (
+          <a
+            href="https://creativecommons.org/licenses/by/4.0/"
+            className="underline"
+          >
+            CC BY 4.0
+          </a>
+          ). Latency alerts:{" "}
+          <a href="https://geocables.com" className="underline">
+            GeoCables
+          </a>{" "}
+          (CC BY 4.0). Owners, length and service year: TeleGeography, via
+          Submarine Cable Status (
+          <a
+            href="https://creativecommons.org/licenses/by-nc-sa/3.0/"
+            className="underline"
+          >
+            CC BY-NC-SA 3.0
+          </a>
+          ).
+        </p>
       </figcaption>
     </figure>
   )
