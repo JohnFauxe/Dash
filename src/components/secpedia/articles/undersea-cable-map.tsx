@@ -30,7 +30,7 @@ export function UnderseaCableMapArticle() {
         <Callout title="Reading the live status">
           <p className="mb-1">
             Faults come from public reports, so they can lag real events, and a
-            cable with no report is not proven healthy. The map shows a small
+            cable with no report is not proven healthy. The globe shows a small
             selection of the world's cables, on routes sketched by hand. Open
             incidents on other cables still appear in the list below it.
           </p>

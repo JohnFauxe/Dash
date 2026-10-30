@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, type PointerEvent } from "react"
-import { geoNaturalEarth1, geoPath } from "d3-geo"
+import { useEffect, useMemo, useRef, useState, type PointerEvent } from "react"
+import { geoGraticule10, geoOrthographic, geoPath } from "d3-geo"
 import {
   ActivityIcon,
   CircleXIcon,
@@ -13,24 +13,29 @@ import {
 } from "lucide-react"
 import { feature } from "topojson-client"
 import type { GeometryCollection, Topology } from "topojson-specification"
-import land from "world-atlas/land-50m.json"
+import detailedLand from "world-atlas/land-50m.json"
+import coarseLand from "world-atlas/land-110m.json"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cables } from "@/data/cables"
 import { useCableStatus } from "@/hooks/use-cable-status"
 import {
-  FULL_VIEW,
+  DEFAULT_VIEW,
   MAX_ZOOM,
   REGIONS,
   colorOf,
   countByRegion,
   filterCables,
-  fitBounds,
-  panBy,
+  fitRoute,
+  interpolateView,
+  isFacing,
+  rotateBy,
   routeLengthKm,
-  zoomAt,
+  zoomBy,
   type Cable,
+  type Position,
   type Region,
+  type View,
 } from "@/lib/cable-map"
 import {
   FAULT_LEVELS,
@@ -41,23 +46,39 @@ import {
 } from "@/lib/cable-status"
 import { cn } from "@/lib/utils"
 
-const SIZE = { width: 960, height: 500 }
+const WIDTH = 720
+const HEIGHT = 560
+const RADIUS = 270
 const DRAG_THRESHOLD_PX = 3
+const FLY_MS = 600
+const WHEEL_SETTLE_MS = 200
 
-const topology = land as unknown as Topology<{ land: GeometryCollection }>
-const projection = geoNaturalEarth1().fitSize([SIZE.width, SIZE.height], {
-  type: "Sphere",
-})
-const toPath = geoPath(projection)
-const landPath = toPath(feature(topology, topology.objects.land)) ?? ""
-const spherePath = toPath({ type: "Sphere" }) ?? ""
+function landShape(topology: unknown) {
+  const { objects, ...rest } = topology as Topology<{
+    land: GeometryCollection
+  }>
+  return feature({ objects, ...rest }, objects.land)
+}
+
+const detailed = landShape(detailedLand)
+const coarse = landShape(coarseLand)
+
+function projectionFor({ lon, lat, k }: View) {
+  return geoOrthographic()
+    .rotate([-lon, -lat])
+    .translate([WIDTH / 2, HEIGHT / 2])
+    .scale(RADIUS * k)
+    .clipExtent([
+      [0, 0],
+      [WIDTH, HEIGHT],
+    ])
+}
 
 function line(cable: Cable) {
   return { type: "LineString", coordinates: cable.route } as const
 }
 
 const sorted = [...cables].sort((a, b) => a.name.localeCompare(b.name))
-const routes = new Map(cables.map((c) => [c.name, toPath(line(c)) ?? ""]))
 const counts = countByRegion(cables)
 
 function Swatch({ region }: { region: Region }) {
@@ -145,9 +166,11 @@ function Fact({ label, value }: { label: string; value: string }) {
   )
 }
 
-/** Pannable, zoomable world map of undersea cables. Dark in both themes. */
+/** Rotatable, zoomable globe of undersea cables. Dark in both themes. */
 export function CableMap() {
-  const [view, setView] = useState(FULL_VIEW)
+  const [view, setView] = useState(DEFAULT_VIEW)
+  // Reprojecting detailed land is too slow for every frame, so moves use coarse.
+  const [moving, setMoving] = useState(false)
   const [query, setQuery] = useState("")
   const [hidden, setHidden] = useState<ReadonlySet<Region>>(new Set())
   const [selectedName, setSelectedName] = useState<string | null>(null)
@@ -161,6 +184,54 @@ export function CableMap() {
   const { incidents, alerts, directory } = status
   const svgRef = useRef<SVGSVGElement>(null)
   const drag = useRef({ x: 0, y: 0, active: false, moved: false })
+  const flight = useRef(0)
+  const wheelTimer = useRef<ReturnType<typeof setTimeout>>(undefined)
+
+  const projection = useMemo(() => projectionFor(view), [view])
+  const toPath = useMemo(() => geoPath(projection), [projection])
+  const landPath = useMemo(
+    () => toPath(moving ? coarse : detailed) ?? "",
+    [toPath, moving],
+  )
+  const routes = useMemo(
+    () => new Map(cables.map((c) => [c.name, toPath(line(c)) ?? ""])),
+    [toPath],
+  )
+  const onScreen = (point: Position) =>
+    isFacing(view, point) ? projection(point) : null
+
+  useEffect(
+    () => () => {
+      cancelAnimationFrame(flight.current)
+      clearTimeout(wheelTimer.current)
+    },
+    [],
+  )
+
+  function flyTo(target: View) {
+    cancelAnimationFrame(flight.current)
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      setMoving(false)
+      setView(target)
+      return
+    }
+    const start = view
+    let began: number | undefined
+    setMoving(true)
+    function step(now: number) {
+      began ??= now
+      const t = Math.min((now - began) / FLY_MS, 1)
+      const eased = t * t * (3 - 2 * t)
+      if (t < 1) {
+        setView(interpolateView(start, target, eased))
+        flight.current = requestAnimationFrame(step)
+      } else {
+        setView(target)
+        setMoving(false)
+      }
+    }
+    flight.current = requestAnimationFrame(step)
+  }
 
   const visible = filterCables(sorted, query, hidden)
   const selected = visible.find((cable) => cable.name === selectedName)
@@ -173,7 +244,7 @@ export function CableMap() {
   const selectedAlerts = alerts?.filter((a) => a.slug === selected?.slug) ?? []
   const selectedFacts = selected && directory?.get(selected.slug)
 
-  // React's wheel listener is passive. Native lets the map stop the page
+  // React's wheel listener is passive. Native lets the globe stop the page
   // scrolling, but only while it can still zoom in that direction.
   const { k } = view
   useEffect(() => {
@@ -183,11 +254,12 @@ export function CableMap() {
       if ((event.deltaY > 0 && k <= 1) || (event.deltaY < 0 && k >= MAX_ZOOM))
         return
       event.preventDefault()
-      const rect = svg!.getBoundingClientRect()
-      const fx = (event.clientX - rect.left) / rect.width
-      const fy = (event.clientY - rect.top) / rect.height
+      cancelAnimationFrame(flight.current)
+      setMoving(true)
+      clearTimeout(wheelTimer.current)
+      wheelTimer.current = setTimeout(() => setMoving(false), WHEEL_SETTLE_MS)
       const factor = Math.exp(-event.deltaY * 0.002)
-      setView((v) => zoomAt(v, factor, fx, fy, SIZE))
+      setView((v) => zoomBy(v, factor))
     }
     svg.addEventListener("wheel", onWheel, { passive: false })
     return () => svg.removeEventListener("wheel", onWheel)
@@ -211,15 +283,19 @@ export function CableMap() {
     if (!state.moved) {
       state.moved = true
       event.currentTarget.setPointerCapture(event.pointerId)
+      cancelAnimationFrame(flight.current)
+      setMoving(true)
       setHover(undefined)
     }
     const rect = event.currentTarget.getBoundingClientRect()
     state.x = event.clientX
     state.y = event.clientY
-    setView((v) => panBy(v, dx / rect.width, dy / rect.height, SIZE))
+    const scale = rect.width / WIDTH
+    setView((v) => rotateBy(v, dx, dy, RADIUS * v.k * scale))
   }
 
   function onPointerUp() {
+    if (drag.current.active && drag.current.moved) setMoving(false)
     drag.current.active = false
   }
 
@@ -242,7 +318,7 @@ export function CableMap() {
 
   function focus(cable: Cable) {
     setSelectedName(cable.name)
-    setView(fitBounds(toPath.bounds(line(cable)), SIZE))
+    flyTo(fitRoute(cable.route))
   }
 
   // Faults paint above healthy cables, and the selected cable above everything.
@@ -296,9 +372,9 @@ export function CableMap() {
         <div className="relative min-w-0 self-start">
           <svg
             ref={svgRef}
-            viewBox={`${view.x} ${view.y} ${SIZE.width / view.k} ${SIZE.height / view.k}`}
+            viewBox={`0 0 ${WIDTH} ${HEIGHT}`}
             role="img"
-            aria-label="World map of undersea cables, coloured by region, with faults dashed. The lists around it have the same information."
+            aria-label="Globe of undersea cables, coloured by region, with faults dashed. The lists around it have the same information."
             onPointerDown={onPointerDown}
             onPointerMove={onPointerMove}
             onPointerUp={onPointerUp}
@@ -309,7 +385,26 @@ export function CableMap() {
               view.k > 1 ? "touch-none" : "touch-pan-y",
             )}
           >
-            <path d={spherePath} className="fill-card" />
+            <defs>
+              <radialGradient id="globe-shade" cx="38%" cy="32%" r="75%">
+                <stop offset="0%" stopColor="var(--secondary)" />
+                <stop offset="100%" stopColor="var(--card)" />
+              </radialGradient>
+            </defs>
+            <path
+              d={toPath({ type: "Sphere" }) ?? ""}
+              fill="url(#globe-shade)"
+              strokeWidth={1}
+              vectorEffect="non-scaling-stroke"
+              className="stroke-border"
+            />
+            <path
+              d={toPath(geoGraticule10()) ?? ""}
+              fill="none"
+              strokeWidth={0.5}
+              vectorEffect="non-scaling-stroke"
+              className="stroke-muted-foreground/15"
+            />
             <path d={landPath} className="fill-muted-foreground/40" />
             {drawOrder.map((cable) => {
               const isSelected = cable === selected
@@ -348,14 +443,14 @@ export function CableMap() {
               )
             })}
             {incidents?.map((incident) => {
-              const at = incident.faultPoint && projection(incident.faultPoint)
+              const at = incident.faultPoint && onScreen(incident.faultPoint)
               if (!at) return null
               return (
                 <circle
                   key={incident.ref}
                   cx={at[0]}
                   cy={at[1]}
-                  r={5 / view.k}
+                  r={5}
                   fill={faultLevelStyle(incident.level).color}
                   strokeWidth={2}
                   vectorEffect="non-scaling-stroke"
@@ -366,13 +461,14 @@ export function CableMap() {
               )
             })}
             {selected?.landings.map(({ name, at }) => {
-              const [x, y] = projection(at) ?? [0, 0]
+              const point = onScreen(at)
+              if (!point) return null
               return (
                 <circle
                   key={name}
-                  cx={x}
-                  cy={y}
-                  r={4 / view.k}
+                  cx={point[0]}
+                  cy={point[1]}
+                  r={4}
                   fill={colorOf(selected.region)}
                   strokeWidth={2}
                   vectorEffect="non-scaling-stroke"
@@ -408,7 +504,7 @@ export function CableMap() {
               size="icon-sm"
               aria-label="Zoom in"
               disabled={view.k >= MAX_ZOOM}
-              onClick={() => setView(zoomAt(view, 2, 0.5, 0.5, SIZE))}
+              onClick={() => setView(zoomBy(view, 2))}
             >
               <PlusIcon />
             </Button>
@@ -417,16 +513,16 @@ export function CableMap() {
               size="icon-sm"
               aria-label="Zoom out"
               disabled={view.k <= 1}
-              onClick={() => setView(zoomAt(view, 0.5, 0.5, 0.5, SIZE))}
+              onClick={() => setView(zoomBy(view, 0.5))}
             >
               <MinusIcon />
             </Button>
             <Button
               variant="outline"
               size="icon-sm"
-              aria-label="Reset map view"
-              disabled={view === FULL_VIEW}
-              onClick={() => setView(FULL_VIEW)}
+              aria-label="Reset globe view"
+              disabled={view === DEFAULT_VIEW}
+              onClick={() => flyTo(DEFAULT_VIEW)}
             >
               <RotateCcwIcon />
             </Button>
@@ -549,8 +645,8 @@ export function CableMap() {
             </>
           ) : (
             <span className="text-muted-foreground">
-              Select a cable on the map or in the list for its details. Scroll
-              or use the buttons to zoom, and drag to move around.
+              Select a cable on the globe or in the list for its details. Drag
+              to rotate, and scroll or use the buttons to zoom.
             </span>
           )}
         </div>

@@ -1,4 +1,4 @@
-import { geoLength } from "d3-geo"
+import { geoCentroid, geoDistance, geoLength } from "d3-geo"
 
 /** Fixed order: a cable keeps its region's colour whatever the filters hide. */
 export const REGIONS = [
@@ -60,67 +60,67 @@ export function filterCables(
   )
 }
 
-/** The visible part of the map: `k` is the zoom, `x`/`y` its top-left corner. */
-export type View = { k: number; x: number; y: number }
-export type Size = { width: number; height: number }
+/** The globe's orientation: the point facing the viewer, and the zoom. */
+export type View = { lon: number; lat: number; k: number }
 
-export const FULL_VIEW: View = { k: 1, x: 0, y: 0 }
+/** Opens on the Indo-Pacific, where most mapped cables and incidents are. */
+export const DEFAULT_VIEW: View = { lon: 115, lat: 5, k: 1 }
 export const MAX_ZOOM = 12
+const MAX_LAT = 85
 
-function clampView({ k, x, y }: View, { width, height }: Size): View {
-  const zoom = Math.min(Math.max(k, 1), MAX_ZOOM)
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function wrapLon(lon: number) {
+  return ((((lon + 180) % 360) + 360) % 360) - 180
+}
+
+export function zoomBy(view: View, factor: number): View {
+  return { ...view, k: clamp(view.k * factor, 1, MAX_ZOOM) }
+}
+
+/**
+ * Turn the globe so the surface follows a drag of `dx`, `dy` pixels, where
+ * `radius` is the globe's radius in the same pixels.
+ */
+export function rotateBy(
+  view: View,
+  dx: number,
+  dy: number,
+  radius: number,
+): View {
+  const degrees = 180 / Math.PI / radius
   return {
-    k: zoom,
-    x: Math.min(Math.max(x, 0), width - width / zoom),
-    y: Math.min(Math.max(y, 0), height - height / zoom),
+    k: view.k,
+    lon: wrapLon(view.lon - dx * degrees),
+    lat: clamp(view.lat + dy * degrees, -MAX_LAT, MAX_LAT),
   }
 }
 
-/** Zoom by `factor`, holding still the point at fractions `fx`, `fy` of the view. */
-export function zoomAt(
-  view: View,
-  factor: number,
-  fx: number,
-  fy: number,
-  size: Size,
-): View {
-  const k = Math.min(Math.max(view.k * factor, 1), MAX_ZOOM)
-  return clampView(
-    {
-      k,
-      x: view.x + fx * (size.width / view.k - size.width / k),
-      y: view.y + fy * (size.height / view.k - size.height / k),
-    },
-    size,
-  )
+/** A step of the way from `a` to `b`, turning the short way round the globe. */
+export function interpolateView(a: View, b: View, t: number): View {
+  const turn = wrapLon(b.lon - a.lon)
+  return {
+    lon: wrapLon(a.lon + turn * t),
+    lat: a.lat + (b.lat - a.lat) * t,
+    k: a.k * (b.k / a.k) ** t,
+  }
 }
 
-/** Drag the map by fractions `fx`, `fy` of the view. */
-export function panBy(view: View, fx: number, fy: number, size: Size): View {
-  return clampView(
-    {
-      k: view.k,
-      x: view.x - (fx * size.width) / view.k,
-      y: view.y - (fy * size.height) / view.k,
-    },
-    size,
-  )
+/** Whether `point` is on the side of the globe facing the viewer. */
+export function isFacing(view: View, point: Position): boolean {
+  return geoDistance([view.lon, view.lat], point) < Math.PI / 2
 }
 
-/** The view that frames projected `bounds`, with some margin. */
-export function fitBounds(
-  [[x0, y0], [x1, y1]]: [[number, number], [number, number]],
-  size: Size,
-): View {
-  const k =
-    0.8 * Math.min(size.width / (x1 - x0 || 1), size.height / (y1 - y0 || 1))
-  const zoom = Math.min(Math.max(k, 1), MAX_ZOOM)
-  return clampView(
-    {
-      k: zoom,
-      x: (x0 + x1) / 2 - size.width / zoom / 2,
-      y: (y0 + y1) / 2 - size.height / zoom / 2,
-    },
-    size,
-  )
+/** The view centred on a route, zoomed in as far as still shows all of it. */
+export function fitRoute(route: Position[]): View {
+  const [lon, lat] = geoCentroid({ type: "LineString", coordinates: route })
+  const reach = Math.max(...route.map((p) => geoDistance([lon, lat], p)))
+  const k = reach < Math.PI / 2 ? 0.8 / Math.sin(reach || 0.01) : 1
+  return {
+    lon,
+    lat: clamp(lat, -MAX_LAT, MAX_LAT),
+    k: clamp(k, 1, MAX_ZOOM),
+  }
 }

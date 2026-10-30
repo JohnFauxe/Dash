@@ -1,19 +1,20 @@
 import { describe, expect, it } from "vitest"
 import { cables } from "@/data/cables"
 import {
-  FULL_VIEW,
+  DEFAULT_VIEW,
   MAX_ZOOM,
   REGIONS,
   countByRegion,
   filterCables,
-  fitBounds,
-  panBy,
+  fitRoute,
+  interpolateView,
+  isFacing,
+  rotateBy,
   routeLengthKm,
-  zoomAt,
+  zoomBy,
   type Region,
 } from "./cable-map"
 
-const size = { width: 960, height: 500 }
 const none = new Set<Region>()
 
 describe("cables", () => {
@@ -64,32 +65,61 @@ describe("filterCables", () => {
   })
 })
 
-describe("map view", () => {
-  it("keeps the point under the cursor still when zooming", () => {
-    const view = zoomAt(FULL_VIEW, 2, 0.25, 0.5, size)
-    expect(view).toEqual({ k: 2, x: 120, y: 125 })
+describe("globe view", () => {
+  it("follows the drag with the surface", () => {
+    const view = rotateBy({ lon: 0, lat: 0, k: 1 }, 100, 50, 100)
+    expect(view.lon).toBeCloseTo(-57.3, 1)
+    expect(view.lat).toBeCloseTo(28.6, 1)
+  })
+  it("wraps longitude and stops short of the poles", () => {
+    const view = rotateBy({ lon: 179, lat: 80, k: 1 }, -10, 1000, 100)
+    expect(view.lon).toBeCloseTo(-175.3, 1)
+    expect(view.lat).toBe(85)
   })
   it("limits the zoom range", () => {
-    expect(zoomAt(FULL_VIEW, 0.5, 0.5, 0.5, size)).toEqual(FULL_VIEW)
-    expect(zoomAt(FULL_VIEW, 1000, 0.5, 0.5, size).k).toBe(MAX_ZOOM)
+    expect(zoomBy(DEFAULT_VIEW, 0.5).k).toBe(1)
+    expect(zoomBy(DEFAULT_VIEW, 1000).k).toBe(MAX_ZOOM)
   })
-  it("cannot pan off the edge of the map", () => {
-    expect(panBy(FULL_VIEW, 0.5, 0.5, size)).toEqual(FULL_VIEW)
-    const zoomed = { k: 2, x: 0, y: 0 }
-    expect(panBy(zoomed, -10, -10, size)).toEqual({ k: 2, x: 480, y: 250 })
+  it("turns the short way across the antimeridian", () => {
+    const a = { lon: 170, lat: 0, k: 1 }
+    const b = { lon: -170, lat: 10, k: 4 }
+    const middle = interpolateView(a, b, 0.5)
+    expect(Math.abs(middle.lon)).toBeCloseTo(180)
+    expect(middle.lat).toBe(5)
+    expect(middle.k).toBeCloseTo(2)
+    expect(interpolateView(a, b, 1).lon).toBeCloseTo(-170)
   })
-  it("pans in view units, so less when zoomed in", () =>
-    expect(panBy({ k: 2, x: 100, y: 100 }, -0.1, 0, size).x).toBe(148))
-  it("fits bounds inside the view", () => {
-    const view = fitBounds(
-      [
-        [100, 100],
-        [196, 150],
-      ],
-      size,
-    )
-    expect(view.k).toBe(8)
-    expect(view.x).toBeLessThanOrEqual(100)
-    expect(view.x + size.width / view.k).toBeGreaterThanOrEqual(196)
+  it("knows which side of the globe a point is on", () => {
+    const view = { lon: 0, lat: 0, k: 1 }
+    expect(isFacing(view, [45, 10])).toBe(true)
+    expect(isFacing(view, [180, 0])).toBe(false)
+  })
+  it("centres on a short route and zooms in", () => {
+    const view = fitRoute([
+      [10, 0],
+      [20, 0],
+    ])
+    expect(view.lon).toBeCloseTo(15)
+    expect(view.k).toBeGreaterThan(5)
+  })
+  it("stays zoomed out for a route too long to fit", () => {
+    const longest = cables.find((c) => c.name === "SEA-ME-WE 4")!
+    expect(fitRoute(longest.route).k).toBeLessThan(2)
+    expect(
+      fitRoute([
+        [0, 0],
+        [90, 0],
+        [180, 0],
+      ]).k,
+    ).toBe(1)
+  })
+  it("keeps every route's ends on the visible side when it fits", () => {
+    for (const { name, route } of cables) {
+      const view = fitRoute(route)
+      if (view.k > 1) {
+        expect(isFacing(view, route[0]), name).toBe(true)
+        expect(isFacing(view, route.at(-1)!), name).toBe(true)
+      }
+    }
   })
 })
