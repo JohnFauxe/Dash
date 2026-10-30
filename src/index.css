@@ -2,12 +2,17 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "@fontsource-variable/geist";
+@import "@fontsource/source-serif-4/600.css";
+@import "@fontsource/source-serif-4/700.css";
 
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: "Geist Variable", sans-serif;
+  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --color-link: var(--link);
+  --color-link-visited: var(--link-visited);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -73,6 +78,8 @@
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
   --radius: 0.625rem;
+  --link: oklch(0.53 0.16 262);
+  --link-visited: oklch(0.47 0.14 296);
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -107,6 +114,8 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
+  --link: oklch(0.74 0.11 253);
+  --link-visited: oklch(0.75 0.1 290);
   --sidebar: oklch(0.205 0 0);
   --sidebar-foreground: oklch(0.985 0 0);
   --sidebar-primary: oklch(0.488 0.243 264.376);
@@ -126,5 +135,36 @@
   }
   html {
     @apply font-sans;
+    /* Keep anchor targets clear of the sticky site header. */
+    scroll-padding-top: 4.5rem;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+}
+
+/* Long-form article text: element styles that would be noisy as per-tag utilities. */
+@layer components {
+  .wiki-prose {
+    & p {
+      @apply my-2.5;
+    }
+    & ul {
+      @apply my-2.5 ml-6 list-disc space-y-1;
+    }
+    & ol {
+      @apply my-2.5 ml-7 list-decimal space-y-1;
+    }
+    & a {
+      @apply text-link visited:text-link-visited hover:underline;
+    }
+    & sup a {
+      @apply text-[0.72em] no-underline;
+    }
+    & .hatnote {
+      @apply text-muted-foreground mb-2 pl-6 text-[0.88rem] italic;
+    }
   }
 }
